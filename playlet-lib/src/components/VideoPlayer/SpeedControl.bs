@@ -1,0 +1,69 @@
+' Up on the remote cycles the playback speed. The choice is remembered and applied
+' before the next video starts, which is the only time some Rokus honor it; while a
+' video plays, a pause and resume makes the new speed take effect.
+namespace SpeedControl
+
+    const SPEEDS = [1.0, 1.25, 1.5, 1.75, 2.0]
+    const REGISTRY_SECTION = "PlaybackSpeed"
+    const REGISTRY_KEY = "speed"
+
+    function IsSupported(player as object) as boolean
+        return player.hasField("playbackSpeed")
+    end function
+
+    function Saved() as float
+        value = Val(CreateObject("roRegistrySection", REGISTRY_SECTION).Read(REGISTRY_KEY))
+        if value <= 0
+            return 1.0
+        end if
+        return value
+    end function
+
+    function Save(speed as float) as void
+        section = CreateObject("roRegistrySection", REGISTRY_SECTION)
+        section.Write(REGISTRY_KEY, speed.ToStr())
+        section.Flush()
+    end function
+
+    function ApplySaved(player as object) as void
+        if IsSupported(player)
+            player.playbackSpeed = Saved()
+        end if
+    end function
+
+    function NextSpeed(current as float) as float
+        for each speed in SPEEDS
+            if speed > current + 0.01
+                return speed
+            end if
+        end for
+        return SPEEDS[0]
+    end function
+
+    function Cycle(player as object) as dynamic
+        if not IsSupported(player)
+            return invalid
+        end if
+        content = player.content
+        if content <> invalid and content.live = true
+            return invalid
+        end if
+
+        speed = NextSpeed(Saved())
+        playing = player.state = "playing"
+        if playing
+            player.control = "pause"
+        end if
+        player.playbackSpeed = speed
+        if playing
+            player.control = "resume"
+        end if
+        Save(speed)
+        return speed
+    end function
+
+    function Label(speed as float) as string
+        return speed.ToStr() + "x"
+    end function
+
+end namespace

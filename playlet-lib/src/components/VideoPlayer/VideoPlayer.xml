@@ -33,5 +33,9 @@
             <Timer id="fullScreenHintTimer" duration="5" />
             <Timer id="trickplayUITimer" duration="5" />
         </Rectangle>
+        <Rectangle id="speedBadge" translation="[1140,40]" width="100" height="48" color="0x000000C0" visible="false">
+            <Label id="speedBadgeLabel" width="100" height="48" color="0xFFFFFF" horizAlign="center" vertAlign="center" font="font:MediumBoldSystemFont" />
+            <Timer id="speedBadgeTimer" duration="1.5" />
+        </Rectangle>
     </children>
 </component>

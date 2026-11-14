@@ -7,6 +7,7 @@ import "pkg:/components/JobSystem/JobSystem.bs"
 import "pkg:/components/Services/Innertube/Constants.bs"
 import "pkg:/components/Services/Invidious/InvidiousToContentNode.bs"
 import "pkg:/components/VideoPlayer/Lounge.bs"
+import "pkg:/components/VideoPlayer/SpeedControl.bs"
 import "pkg:/components/VideoPlayer/SponsorBlock.bs"
 import "pkg:/components/VideoPlayer/VideoPlayerStyle.bs"
 import "pkg:/components/VideoQueue/VideoQueueUtils.bs"
@@ -36,6 +37,11 @@ function Init()
     m.trickplayUITimer = m.top.findNode("trickplayUITimer")
     m.trickplayUITimer.ObserveField("fire", FuncName(OnTrickplayUITimer))
     m.top.notificationInterval = 1
+    SpeedControl.ApplySaved(m.top)
+    m.speedBadge = m.top.findNode("speedBadge")
+    m.speedBadgeLabel = m.top.findNode("speedBadgeLabel")
+    m.speedBadgeTimer = m.top.findNode("speedBadgeTimer")
+    m.speedBadgeTimer.ObserveField("fire", FuncName(OnSpeedBadgeTimer))
 
     ' videoPlayingSuccess indicates if we started playing a video successfully
     ' We use it to detect if we should try another link for a video, or if another error
@@ -726,6 +732,14 @@ function OnKeyEvent(key as string, press as boolean) as boolean
         end if
     end if
 
+    if key = RemoteKeys.Up and m.container.fullscreen
+        speed = SpeedControl.Cycle(m.top)
+        if speed <> invalid
+            ShowSpeedBadge(speed)
+            return true
+        end if
+    end if
+
     if key = RemoteKeys.Back
         m.videoQueue.closePlayer = true
         return true
@@ -807,4 +821,15 @@ function OnFullScreenHintTimer()
     if showFullScreenHint
         m.top.showFullScreenHint = false
     end if
+end function
+
+function ShowSpeedBadge(speed as float) as void
+    m.speedBadgeLabel.text = SpeedControl.Label(speed)
+    m.speedBadge.visible = true
+    m.speedBadgeTimer.control = "stop"
+    m.speedBadgeTimer.control = "start"
+end function
+
+function OnSpeedBadgeTimer() as void
+    m.speedBadge.visible = false
 end function
