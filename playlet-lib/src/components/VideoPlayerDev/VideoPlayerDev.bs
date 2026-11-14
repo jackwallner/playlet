@@ -1,4 +1,5 @@
 import "pkg:/components/ContentNode/ProfileContentAuthTokenUtils.types.bs"
+import "pkg:/components/VideoPlayer/SpeedControl.bs"
 import "pkg:/components/Dialog/DialogUtils.bs"
 import "pkg:/components/JobSystem/Jobs.bs"
 import "pkg:/components/JobSystem/JobSystem.bs"
@@ -40,6 +41,11 @@ end enum
 ' one component scope; this file is shared with the test mock (tests/VideoPlayerDevMock).
 function Initialize()
     m.top.notificationInterval = 1
+    SpeedControl.ApplySaved(m.top)
+    m.speedBadge = m.top.findNode("speedBadge")
+    m.speedBadgeLabel = m.top.findNode("speedBadgeLabel")
+    m.speedBadgeTimer = m.top.findNode("speedBadgeTimer")
+    m.speedBadgeTimer.ObserveField("fire", FuncName(OnSpeedBadgeTimer))
 
     m.transport = new TransportController.Controller()
     m.playbackTelemetry = new PlaybackTelemetry.Recorder({
@@ -352,6 +358,15 @@ function OnKeyEvent(key as string, press as boolean) as boolean
         end if
         ' the button tier owns Left/Right + OK; Rev/Fwd/Replay/Back fall through to the transport / close.
         if m.focusTarget = PlayerCoordinatorLogic.FocusTarget.Buttons and HandleButtonsKey(key)
+            return true
+        end if
+    end if
+
+    ' Up with the chrome hidden cycles the playback speed; Down still reveals the chrome.
+    if press and key = RemoteKeys.Up and m.container.fullscreen and m.transport.transportMode = TransportController.Mode.Idle and not (m.chromeMode = ChromeMode.Shown or m.chromeMode = ChromeMode.FadingIn)
+        speed = SpeedControl.Cycle(m.top)
+        if speed <> invalid
+            ShowSpeedBadge(speed)
             return true
         end if
     end if
@@ -1558,4 +1573,15 @@ function OnClose() as void
     end try
 
     m.top.content = invalid
+end function
+
+function ShowSpeedBadge(speed as float) as void
+    m.speedBadgeLabel.text = SpeedControl.Label(speed)
+    m.speedBadge.visible = true
+    m.speedBadgeTimer.control = "stop"
+    m.speedBadgeTimer.control = "start"
+end function
+
+function OnSpeedBadgeTimer() as void
+    m.speedBadge.visible = false
 end function
